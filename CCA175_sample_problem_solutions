@@ -1,0 +1,294 @@
+## some problem scenario examples and their solutions for CCA175 (cloudera exam) 
+##Topics covered HDFS commands, Sqoop, Hive 
+
+#################################################################################################################################################
+Problem Scenerio 1 : You have been given MySQL DB with following details.
+user=retail_dba
+password=cloudera
+database=retail_db
+table=retail_db.categories
+jdbc URL = jdbc:mysql://quickstart:3306/retail_db
+Please accomplish following activities.
+1. Connect MySQL DB and check the content of the tables.
+2. Copy "retail_db.categories" table to hdfs, without specifying directory name.
+3. Copy "retail_db.categories" table to hdfs, in a directory name "categories_target".
+4. Copy "retail_db.categories" table to hdfs, in a warehouse directory name "categories_warehouse".
+
+
+solution 
+
+1.mysql -u retail_dba -p 
+show databases;
+use <database-name>;
+show tables;
+
+
+2. 
+  sqoop import \
+--connect "jdbc:mysql://quickstart:3306/retail_db" \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--m 1   
+
+
+3. 
+ sqoop import \
+--connect "jdbc:mysql://quickstart:3306/retail_db" \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--m 1   
+--target-dir categories_target
+
+
+4.  sqoop import \
+--connect "jdbc:mysql://quickstart:3306/retail_db" \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--m 1   
+--warehouse-dir categories_target
+
+
+#################################################################################################################################################
+
+Problem Scenario 2 : There is a parent organization called "Acmeshell Group Inc", which has two child companies named QuickTechie Inc and HadoopExam Inc.
+Both compnaies employee information is given in two separate text file as below. Please do the following activity for employee details.
+quicktechie.txt
+1,Alok,Hyderabad
+2,Krish,Hongkong
+3,Jyoti,Mumbai
+4,Atul,Banglore
+5,Ishan,Gurgaon
+
+hadoopexam.txt
+6,John,Newyork
+7,alp2004,California
+8,tellme,Mumbai
+9,Gagan21,Pune
+10,Mukesh,Chennai
+
+1. Which command will you use to check all the available command line options on HDFS and How will you get the Help for individual command.
+2. Create a new Empty Directory named Employee using Command line. And also create an empty file named in it quicktechie.txt
+3. Load both companies Employee data in Employee directory (How to override existing file in HDFS).
+4. Merge both the Employees data in a Single file called MergedEmployee.txt, merged files should have new line character at the end of each file content.
+5. Upload merged file on HDFS and change the file permission on HDFS merged file , so that owner and group member can read and write, other user can read the file.
+6. Write a command to export the individual file as well as entire directory from HDFS to local file System.
+
+
+solution:
+
+1.  hdfs dfs -help  ### it can be used to check all the available commands
+
+hdfs dfs -help <command-name>  ## it canbe used to get the help of individual command e.g.  hdfs dfs -help  put   
+
+2.  
+ hdfs dfs -mkdir /user/cloudera/Employee
+
+
+ hdfs dfs -touchz  /user/cloudera/Employee/quicktechie.txt
+
+3. 
+
+hdfs dfs -appendToFile quicktechie.txt  /user/cloudera/Employee/quicktechie.txt
+or  
+hdfs dfs -copyFromLocal -f quicktechie.txt /user/cloudera/Employee/
+
+4.   hdfs dfs -getmerge -nl /user/cloudera/Employee/  MergedEmployee.txt
+
+5. 
+  hdfs dfs -copyFromLocal MergedEmployee.txt /user/cloudera/Employee/
+
+< setfacl>   hdfs dfs -setfacl --set user::rw-,user:hadoop:rw-,group::r--,other::r-- /user/cloudera/Employee/MergedEmployee.txt
+
+got problem need some changes in hdfs-site.xml file 
+<setfacl: The ACL operation has been rejected.  Support for ACLs has been disabled by setting dfs.namenode.acls.enabled to false.>
+
+6. hdfs dfs -copyToLocal /user/cloudera/Employee/* /home/cloudera/Downloads/hadooexam_site_practice/fromHDFS/
+
+hdfs dfs -copyToLocal /user/cloudera/Employee/hadoopexam.txt  /home/cloudera/Downloads/hadooexam_site_practice/fromHDFS/
+
+hdfs dfs -copyToLocal /user/cloudera/Employee/quicktechie.txt  /home/cloudera/Downloads/hadooexam_site_practice/fromHDFS/
+
+#################################################################################################################################################
+
+Problem Scenerio 3: You have been given MySQL DB with following details.
+user=retail_dba
+password=cloudera
+database=retail_db
+table=retail_db.categories
+jdbc URL = jdbc:mysql://quickstart:3306/retail_db
+Please accomplish following activities.
+1. Import data from catagories table, where catagory=22 (Data should be stored in categories_subset)
+2. Import data from catagories table, where catagory>22 (Data should be stored in categories_subset_2)
+3. Import data from catagories table, where catagory  between 1 and 22 (Data should be stored in categories_subset_3)
+4. While importing catagories data change the delimiter to '|' (Data should be stored in categories_subset_6)
+5. Importing data from catagories table and restrict the import to category_name,category_id columns only with delimiter as  '|'
+6. Add null values in the table using below SQL statement
+ALTER TABLE categories modify category_department_id int(11);
+INSERT INTO categories values (60,NULL,'TESTING');
+7. Importing data from catagories table (In categories_subset_17 directory) using '|' delimiter and category_id between 1 and 61
+ and encode null values for both string and non string columns.
+ 8. Import entire schema retail_db in a directory categories_subset_all_tables
+
+
+
+solution:
+1. 
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset \
+--m 1 \
+--where "category_id =22"
+
+
+2. 
+
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset_2 \
+--m 1 \
+--where "category_id >22"
+
+3.
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset_3 \
+--m 1 \
+--where "category_id >=1 and category_id <22"
+
+4. 
+
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset_6 \
+--m 1 \
+--fields-terminated-by '|'
+
+5.
+
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset_7 \
+--m 1 \
+--fields-terminated-by '|' \
+--columns category_id,category_name 
+
+7. 
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--target-dir /user/cloudera/categories_subset_17 \
+--m 1 \
+--fields-terminated-by '|' \
+--where "category_id>=1 and category_id <61" \
+--null-non-string 00 \
+--null-string "no value"
+
+
+8.
+
+
+sqoop import-all-tables \
+--connect "jdbc:mysql://quickstart:3306/retail_db" \
+--username retail_dba \
+--password cloudera \
+--as-avrodatafile \
+--warehouse-dir=/user/cloudera/categories_subset_all_tables \
+-m 2
+
+
+
+#################################################################################################################################################
+
+Problem Scenerio 4: You have been given MySQL DB with following details.
+user=retail_dba
+password=cloudera
+database=retail_db
+table=retail_db.categories
+jdbc URL = jdbc:mysql://quickstart:3306/retail_db
+Please accomplish following activities.
+Import Single table categories(Subset data) to hive managed table , where category_id between 1 and 22 
+
+
+solution:
+
+sqoop import \
+--connect jdbc:mysql://quickstart:3306/retail_db \
+--username retail_dba \
+--password cloudera \
+--table categories \
+--warehouse-dir /user/hive/warehouse/Subset_data \
+--m 1 \
+--hive-import \
+--hive-table categories \
+--create-hive-table \
+--where "category_id>=1 and category_id <22" \
+--null-non-string 00 \
+--null-string "no value"
+
+#################################################################################################################################################
+
+Problem Scenerio 5: You have been given following data format file. Each datapoint is separated by '|'.
+Name|Location1,Location2...Location5|Sex,Age|Father_Name:Number_of_Child
+Example Record
+Anupam|Delhi,Mumbai,Chennai|Male,45|Daulat:4
+Write a Hive DDL script to create a table named "FamilyHead" which should be capable of holding these data. Also note that it should use complex data type e.g. Map, Array,Struct
+
+solution:
+
+create table IF NOT EXISTS FamilyHead (Name string,location array<string>,sex_age struct<sex:string, age:int>,father_child map<string,int>) row format delimited fields terminated by '|' collection items terminated by ',' map keys terminated by ':';
+
+#################################################################################################################################################
+
+Problem Scenario 6: You have been given following data format file. Each datapoint is separated by '|'.
+Name|Sex|Age|Father_Name
+Example Record
+Anupam|Male|45|Daulat
+Create an Hive database named "Family" with following details. You must take care that if database is already exist it should not be created again.
+Comment : "This database will be used for collecting various family data and their daily habits"
+Data File Location : '/hdfs/family'
+Stored other properties : "'Database creator'='Vedic'" , "'Database_Created_On'='2016-01-01'"
+Also write a command to check, whether database has been created or not, with new properties.
+
+create database IF NOT EXISTS Family WITH DBPROPERTIES ('Database creator'='vedic', 'Database_Created_On'='2016-01-01');
+
+
+describe database extended Family;
+
+
+#################################################################################################################################################
+
+Problem Scenerio 7 :  You have been given following data format file. Each datapoint is separated by '|'.
+Name|Sex|Age|Father_Name
+Example Record
+Anupam|Male|45|Daulat
+Create an Hive table named "Family_Head" with following details.
+ - Table must be created in existing database named  "Family"
+ - You must take care that if table is already exist it should not be created again.
+ - Table must be created inside Hive warehouse directory and should not be an external table.
+
+use Family;
+
+create table IF NOT EXISTS Family_Head (Name string, Sex String, Age int, Father_Name string) row format Delimited fields terminated by '|';
+
+
+#################################################################################################################################################
